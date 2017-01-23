@@ -31,6 +31,11 @@ public:
 			t = static_cast<T*>(this);
 		return t;
 	}
+	//T should be of type _Message
+	template<typename T> bool isType(){
+		return (type == T::messageType);
+	}
+
 	virtual ~Message(){};
 };
 
