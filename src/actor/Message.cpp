@@ -6,7 +6,7 @@
  */
 
 
-#include "../actor/Message.h"
+#include "Message.h"
 
 namespace uActors{
 //Set the type id for the specific type

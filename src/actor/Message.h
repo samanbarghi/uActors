@@ -9,9 +9,7 @@
 #define SRC_ACTOR_MESSAGE_H_
 
 
-#include <typeinfo>
 #include <cstddef>
-#include <type_traits>
 
 namespace uActors {
 
@@ -25,7 +23,7 @@ private:
 protected:
 	Message(size_t t):type(t){};
 public:
-	size_t getType() const {return type;};
+	const size_t getType() const {return type;};
 	//T should be of type _Message
 	template<typename T> T* isa(){
 		T* t = nullptr;
@@ -61,19 +59,19 @@ template<typename T>
 struct uMessage: public _Message<T>{};
 
 /** AutoReceive Message **/
-struct Restaring : AutoReceiveMessage<Restaring>{};
-struct Stopping 	: AutoReceiveMessage<Stopping>{};
-struct Stopped	: AutoReceiveMessage<Stopped>{};
-struct PoisonPill: AutoReceiveMessage<PoisonPill>{};
+struct Restaring	: 	AutoReceiveMessage<Restaring>{};
+struct Stopping		: 	AutoReceiveMessage<Stopping>{};
+struct Stopped		: 	AutoReceiveMessage<Stopped>{};
+struct PoisonPill	: 	AutoReceiveMessage<PoisonPill>{};
 
 /** System Messages **/
-struct Started	: SystemMessage<Started>{};
-struct Stop		: SystemMessage<Stop>{};
-struct Watch		: SystemMessage<Watch>{};
-struct Unwatch 	: SystemMessage<Unwatch>{};
-struct Terminated: SystemMessage<Terminated>{};
-struct Failure	: SystemMessage<Failure>{};
-struct Restart	: SystemMessage<Restart>{};
+struct Started		:	SystemMessage<Started>{};
+struct Stop			: 	SystemMessage<Stop>{};
+struct Watch		: 	SystemMessage<Watch>{};
+struct Unwatch		: 	SystemMessage<Unwatch>{};
+struct Terminated	: 	SystemMessage<Terminated>{};
+struct Failure		: 	SystemMessage<Failure>{};
+struct Restart		: 	SystemMessage<Restart>{};
 }  // namespace uActors
 
 
