@@ -10,8 +10,18 @@
 
 namespace uActors{
 class Context;
+class Actor;
+class PID;
+class Props;
+
 // The ActorFunc type is an adapter to allow the use of ordinary functions as actors to process messages
 typedef void (*ActorFunc)(Context&);
+
+// The Producer type is a function that creates a new actor
+typedef Actor* (*Producer)();
+
+typedef PID* (*SpawnFunc)(std::string id, Props* props, PID* parent); //TODO: how to return error
+
 };
 
 

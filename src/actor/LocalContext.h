@@ -19,9 +19,9 @@ class LocalContext : public Context{
 	Actor*				actor;
 	ActorFunc			receiveFunc;
 	std::vector<PID*>	children;
+	Producer       		producer
 	/*
 	supervisor     SupervisorStrategy
-	producer       Producer
 	middleware     ActorFunc
 	behavior       behaviorStack
 	receive        ActorFunc
@@ -37,7 +37,7 @@ class LocalContext : public Context{
 	*/
 
 public:
-	LocalContext(PID* parent):parent(parent){};
+	LocalContext(Producer producer, PID* parent):producer(producer), parent(parent){};
 
 	Message& getMessage(){
 		return *message;
@@ -81,7 +81,7 @@ public:
 	};
 
 	void processMessage(Message& msg){
-		message = msg;
+		message = &msg;
 		if(msg.isType<PoisonPill>()){
 
 		}else{
