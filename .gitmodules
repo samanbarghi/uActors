@@ -1,0 +1,6 @@
+[submodule "libs/libcuckoo"]
+	path = libs/libcuckoo
+	url = https://github.com/efficient/libcuckoo
+[submodule "libs/cityhash"]
+	path = libs/cityhash
+	url = https://github.com/google/cityhash

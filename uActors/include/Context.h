@@ -63,7 +63,7 @@ class Context{
 public:
 
 	// Message returns the current message to be processed
-	virtual Message& getMessage(){};
+	virtual const Message& getMessage(){};
 
 	// Parent returns the PID for the current actors parent
 	virtual PID* getParent(){};
