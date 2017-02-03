@@ -32,7 +32,7 @@ public:
 
 	Props(){};
 	Props(Producer ap): actorProducer(ap){};
-	Props(Spawner& sp): spawner(sp){};
+	Props(Spawner sp): spawner(sp){};
 
 	Dispatcher* getDispatcher(){ return dispatcher;};
 	Producer	getProducer(){return actorProducer;};
@@ -50,7 +50,7 @@ public:
 
 	};
 
-	static Props fromSpawner(Spawner spawn){
+	static Props fromSpawner(Spawner& spawn){
 		Props props(spawn);
 		return props;
 	};
