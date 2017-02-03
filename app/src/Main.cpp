@@ -6,6 +6,8 @@
  */
 
 #include <iostream>
+#include <unistd.h>
+
 #include <uThreads/uThreads.h>
 #include "LocalContext.h"
 #include "ProcessRegistry.h"
@@ -14,36 +16,34 @@
 
 using namespace std;
 using namespace uActors;
-const size_t MAX_FORWARD = 1000000;
+size_t MAX_FORWARD = 10000;
+size_t NUM_ACTORS = 100;
 
 Semaphore sem;
 struct NextNodeMessage : public uMessage<NextNodeMessage>{
 	PID* next;
-	NextNodeMessage(PID* n) : next(n){};
+    int id;
+	NextNodeMessage(PID* n, int i) : next(n), id(i){};
 };
-struct MyMessage: public uMessage<MyMessage>{
-public:
-	int value;
-	MyMessage(int v):value(v){};
-};
+struct MyMessage: public uMessage<MyMessage>{};
 
 class MyActor : public Actor{
 public:
-	PID* next;
-	size_t counter =0;
+	PID* next = nullptr;
+    int id = -1;
+    size_t counter =0;
 	void receive(Context& c){
-		if(const MyMessage* mm = c.getMessage().isa<MyMessage>()){
-			counter++;
-			if(counter <= MAX_FORWARD){
-				//assert(next != nullptr);
-				next->tell(*mm);
-			}else{
-				sem.V();
-			}
+        if(const MyMessage* mm = c.getMessage().isa<MyMessage>()){
+            if(id == 0){
+                if(++counter >= 2* MAX_FORWARD)
+                    sem.V();
+            }
+            MyMessage *msg = new MyMessage();
+            next->tell(*msg);
 //			cout << counter << ": Here we are receiving: " << mm->value << endl;
 		}else if(const NextNodeMessage* mm = c.getMessage().isa<NextNodeMessage>()){
-			//cout << "Next: " << mm->next << endl;
 			next = mm->next;
+            id = mm->id;
 		}
 	};
 };
@@ -53,20 +53,33 @@ Actor* MyActorProducer(){
 	return new MyActor();
 };
 
-int main(){
-	kThread kt(Cluster::getDefaultCluster());
-//	kThread kt1(Cluster::getDefaultCluster());
-	const int NUM_ACTORS = 100;
+int main(int argc, const char * argv[]){
+    if(argc < 3){
+        std::cout << "Format: ./app thread_no actor_no round_no" << std::endl;
+        exit(0);
+    }
+    size_t number_of_threads = atoi(argv[1]);
+    NUM_ACTORS = atoi(argv[2]);
+    MAX_FORWARD= atoi(argv[3]);
+
+    for(size_t i=1; i < number_of_threads; i++)
+        kThread *kt = new kThread(Cluster::getDefaultCluster());
+
+//    kThread kt1(Cluster::getDefaultCluster());
+
 	PID* myactors[NUM_ACTORS];
 	auto p = Props::fromProducer(MyActorProducer);
 	for(size_t i =0; i < NUM_ACTORS; i++){
 		myactors[i] = Spawner::spawn(&p);
 	};
 	for(size_t i = 0 ; i < NUM_ACTORS; i++){
-		myactors[i]->tell(NextNodeMessage(myactors[(i+1)%NUM_ACTORS]));
+		myactors[i]->tell(NextNodeMessage(myactors[(i+1)%NUM_ACTORS], i));
 	}
-	MyMessage mm(10);
-	myactors[0]->tell(mm);
+
+	for(size_t i = 0 ; i < MAX_FORWARD; i++){
+	    MyMessage *mm = new MyMessage();
+    	myactors[0]->tell(*mm);
+    }
 	sem.P();
 	return 0;
 }
