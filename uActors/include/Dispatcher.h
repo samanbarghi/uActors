@@ -36,8 +36,10 @@ public:
 	uThreadsDispatcher(size_t thrp): Dispatcher(thrp){ };
 	void schedule(ProcessMailBoxFunc func, DefaultMailbox& m){
 		dispatched.fetch_add(1, std::memory_order_relaxed);
-//		std::cout << "Dispatching : " << dispatched << std::endl;
-		uThread::create(false)->start(Cluster::getDefaultCluster(), (void*)func, (void*)&m, nullptr, nullptr);
+//        std::cout << "DISPATCH:\t" << &m << "\tCOUNT:\t" << dispatched << std::endl;
+		uThread* ut = uThread::create(false);
+        //ut->setHomekthread(uThread::currentUThread()->getHomekThread());
+        ut->start(Cluster::getDefaultCluster(), (void*)func, (void*)&m, nullptr, nullptr);
 	};
 	void yield(){
 		uThread::yield();
