@@ -31,11 +31,6 @@ public:
 	virtual ~Inbound(){};
 };
 
-enum class MailboxState : uint8_t{
-	idle,
-	running
-};
-
 class DefaultMailbox : public Inbound{
 
 public:
@@ -45,29 +40,33 @@ public:
 	Dispatcher&					dispatcher;
 
 	bool						suspended;
-	std::atomic<MailboxState> 	dispatcherStatus;
+	std::atomic<bool>    	    dispatcherStatus;
 	std::atomic<uint32_t>		systemMessageCount;
 	std::atomic<uint32_t>		userMessageCount;
 
 
-	DefaultMailbox(MessageInvoker& mi, Dispatcher& disp): dispatcher(disp), invoker(mi), suspended(false), dispatcherStatus(MailboxState::idle),
+	DefaultMailbox(MessageInvoker& mi, Dispatcher& disp): dispatcher(disp), invoker(mi), suspended(false), dispatcherStatus(false),
 			systemMessageCount(0), userMessageCount(0){};
 
 	//process messages
 	void run(){
 		size_t i = 0;
 		size_t t = dispatcher.getThroughput();
+        const size_t MAX_COUNT = 1;
+        size_t counter = 0;
 
 		Message* msg = nullptr;
 
 		for(;;){
 			if(i > t ){
 //				std::cout << "Yielding" << std::endl;
+                i = 0;
 				dispatcher.yield();
 			}
 			i++;
 
-//			std::cout << "Sys:" << systemMessageCount <<  " usr: " << userMessageCount << std::endl;
+            msg = nullptr;
+//            std::cout << "Sys:" << systemMessageCount <<  " usr: " << userMessageCount << std::endl;
 			//keep processing system messages
 			msg = systemMailbox.pop();
 			if(msg != nullptr){
@@ -92,38 +91,41 @@ public:
 				userMessageCount.fetch_sub(1, std::memory_order_relaxed);
 				invoker.invokeUserMessage(msg);
 
+			}else if(++counter < MAX_COUNT){
+               dispatcher.yield();
 			}else{
-				return;
-			}
+                return;
+            }
 		}
 	};
 
 	static void processMessage(void* m){
 		DefaultMailbox* mbox = (DefaultMailbox*)m;
-		MailboxState idleState = MailboxState::idle;
+		bool idleState = false;
 //		std::cout << mbox << ":Processing: " << std::endl;
 		while(true){
 			mbox->run();
-//			std::cout << mbox << ":After Run" << std::endl;
+//            std::cout << "FINISHED RUN:\t" << mbox << std::endl;
 
-			mbox->dispatcherStatus.store(MailboxState::idle, std::memory_order_release);
+			mbox->dispatcherStatus.store(false, std::memory_order_release);
 			uint32_t sys = mbox->systemMessageCount.load(std::memory_order_relaxed);
 			uint32_t user= mbox->userMessageCount.load(std::memory_order_relaxed);
 
+//            std::cout << "MESSAGE STAT:\t" << mbox << "\tSys:" << sys <<  " usr: " << user << std::endl;
 			if(sys > 0 || (!mbox->suspended && user > 0)){
-//				std::cout << "Run again" << std::endl;
-				if(!mbox->dispatcherStatus.compare_exchange_strong(idleState, MailboxState::running, std::memory_order_acquire)){
+//                std::cout << "RUN AGAIN:\t" << mbox << std::endl;
+				if(!mbox->dispatcherStatus.compare_exchange_strong(idleState, true, std::memory_order_acquire)){
 					break;
 				};
 			}else break;
-			idleState = MailboxState::idle;
+			idleState = false;
 		};
 
 	};
 	void schedule(){
-		MailboxState idleState = MailboxState::idle;
-		if(dispatcherStatus.compare_exchange_strong(idleState, MailboxState::running, std::memory_order_acquire)){
-//			std::cout << this << ":Scheduling for :"  << std::endl;
+		bool idleState = false;
+//        std::cout << "SCHEDULE:\t" << this << "\tSTATUS:\t" << dispatcherStatus.load() << std::endl;
+		if(dispatcherStatus.compare_exchange_strong(idleState, true, std::memory_order_acquire)){
 			dispatcher.schedule(processMessage, *this);
 		};
 	};
@@ -133,13 +135,12 @@ public:
 		schedule();
 	};
 
-
-
 	void postSystemMessage(Message& msg){
 		systemMailbox.push(msg);
 		systemMessageCount.fetch_add(1, std::memory_order_relaxed);
 		schedule();
 	};
+
 	void start(){
 		//TODO: for now do nothing
 	};
