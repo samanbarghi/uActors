@@ -42,14 +42,20 @@ public:
 		return id;
 	}
 	//copy the message
-	void tell(const Message& msg){
-		Message* msg_cpy = msg.clone();
+	void tell(Message& msg){
+//		Message* msg_cpy = msg.clone();
 		Process* p = ref();
-//		std::cout << "Telling:"  << p << std::endl;
+//        std::cout << "TELL    :\t"  << p << std::endl;
 		if(p != nullptr)
-			(*p).sendUserMessage(this, *msg_cpy, nullptr);
+			(*p).sendUserMessage(this, msg, nullptr);
 		//else error
 	};
+
+    //copy the rvalue
+    void tell(Message&& rvmsg){
+        Message* msg = rvmsg.clone();
+        tell(*msg);
+    }
 
 	//send by reference
 	/*void tell(const Message* msg){
