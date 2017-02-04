@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <unistd.h>
+#include <ctime>
 
 #include <uThreads/uThreads.h>
 #include "LocalContext.h"
@@ -35,9 +36,12 @@ public:
 	void receive(Context& c){
         if(const MyMessage* mm = c.getMessage().isa<MyMessage>()){
             if(id == 0){
-                if(++counter >= 2* MAX_FORWARD)
+                if(counter >= MAX_FORWARD){
                     sem.V();
+                    return;
+                }
             }
+            ++counter;
             MyMessage *msg = new MyMessage();
             next->tell(*msg);
 //			cout << counter << ": Here we are receiving: " << mm->value << endl;
@@ -62,6 +66,9 @@ int main(int argc, const char * argv[]){
     NUM_ACTORS = atoi(argv[2]);
     MAX_FORWARD= atoi(argv[3]);
 
+    std::cout << "Running with " << number_of_threads << " threads and " <<
+    NUM_ACTORS << " actors, and " << MAX_FORWARD << " rounds" << std::endl;
+
     for(size_t i=1; i < number_of_threads; i++)
         kThread *kt = new kThread(Cluster::getDefaultCluster());
 
@@ -80,7 +87,14 @@ int main(int argc, const char * argv[]){
 	    MyMessage *mm = new MyMessage();
     	myactors[0]->tell(*mm);
     }
+    std::cout << MAX_FORWARD << " Messages sent" << std::endl;
+    clock_t begin = clock();
 	sem.P();
+    clock_t end = clock();
+    double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+
+    cout << "Elapsed time: " << elapsed_secs << " seconds " << endl;
+
 	return 0;
 }
 
