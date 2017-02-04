@@ -35,11 +35,11 @@ class uThreadsDispatcher: public Dispatcher{
 public:
 	uThreadsDispatcher(size_t thrp): Dispatcher(thrp){ };
 	void schedule(ProcessMailBoxFunc func, DefaultMailbox& m){
-		dispatched.fetch_add(1, std::memory_order_relaxed);
-//        std::cout << "DISPATCH:\t" << &m << "\tCOUNT:\t" << dispatched << std::endl;
+//		dispatched.fetch_add(1, std::memory_order_relaxed);
 		uThread* ut = uThread::create(false);
-        //ut->setHomekthread(uThread::currentUThread()->getHomekThread());
         ut->start(Cluster::getDefaultCluster(), (void*)func, (void*)&m, nullptr, nullptr);
+//        ut->setHomekthread(uThread::currentUThread()->getHomekThread());
+//        std::cout << "DISPATCH:\t" << &m << "\tCOUNT:\t" << dispatched << "\tHomekThread:\t" << ut->getHomekThread() <<   std::endl;
 	};
 	void yield(){
 		uThread::yield();
