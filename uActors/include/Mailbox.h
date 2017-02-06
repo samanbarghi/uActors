@@ -52,7 +52,6 @@ public:
 	void run(){
 		size_t i = 0;
 		size_t t = dispatcher.getThroughput();
-        const size_t MAX_COUNT = 1;
         size_t counter = 0;
 
 		Message* msg = nullptr;
@@ -68,31 +67,33 @@ public:
             msg = nullptr;
 //            std::cout << "Sys:" << systemMessageCount <<  " usr: " << userMessageCount << std::endl;
 			//keep processing system messages
-			msg = systemMailbox.pop();
-			if(msg != nullptr){
-//				std::cout << "Receiving System Message"<< std::endl;
-				systemMessageCount.fetch_sub(1, std::memory_order_relaxed);
-				if(msg->isType<SuspendMailbox>()){
-					suspended = true;
-				}else if(msg->isType<ResumeMailbox>()){
-					suspended = false;
-				}else{
-					invoker.invokeSystemMessage(msg);
+            if(systemMessageCount.load() != 0){
+				msg = systemMailbox.pop();
+				if(msg != nullptr){
+	//				std::cout << "Receiving System Message"<< std::endl;
+					systemMessageCount.fetch_sub(1, std::memory_order_relaxed);
+					if(msg->isType<SuspendMailbox>()){
+						suspended = true;
+					}else if(msg->isType<ResumeMailbox>()){
+						suspended = false;
+					}else{
+						invoker.invokeSystemMessage(msg);
+					}
+					continue;
 				}
-				continue;
-			}
+            }
 
 			//if suspended, stop processing
 			if(suspended)	return;
 
-			msg = userMailbox.pop();
-			if(msg != nullptr){
-//				std::cout << "Receiving User Message" << std::endl;
-				userMessageCount.fetch_sub(1, std::memory_order_relaxed);
-				invoker.invokeUserMessage(msg);
+			if(userMessageCount.load() != 0){
+				msg = userMailbox.pop();
+				if(msg != nullptr){
+	//				std::cout << "Receiving User Message" << std::endl;
+					userMessageCount.fetch_sub(1, std::memory_order_relaxed);
+					invoker.invokeUserMessage(msg);
 
-			}else if(++counter < MAX_COUNT){
-               dispatcher.yield();
+				}
 			}else{
                 return;
             }
