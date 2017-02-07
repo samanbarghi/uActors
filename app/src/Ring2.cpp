@@ -20,6 +20,7 @@ size_t MAX_FORWARD = 10000;
 size_t NUM_ACTORS = 100;
 
 Semaphore sem;
+std::chrono::time_point<std::chrono::high_resolution_clock> tbegin;
 struct NextNodeMessage : public uMessage<NextNodeMessage>{
 	PID* next;
 	NextNodeMessage(PID* n) : next(n){};
@@ -39,7 +40,10 @@ public:
                 MyMessage *msg = new MyMessage(mm->value - 1);
 				next->tell(*msg);
 			}else{
-				sem.V();
+                auto elapsed = std::chrono::high_resolution_clock::now() - tbegin;
+                long long microseconds = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+                cout << "Elapsed time: " << microseconds << " useconds " << endl;
+                exit(0);
 			}
 //			cout << counter << ": Here we are receiving: " << mm->value << endl;
 		}else if(const NextNodeMessage* mm = c.getMessage().isa<NextNodeMessage>()){

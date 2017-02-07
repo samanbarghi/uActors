@@ -20,33 +20,38 @@ using namespace uActors;
 size_t MAX_FORWARD = 10000;
 size_t NUM_ACTORS = 100;
 
+std::chrono::time_point<std::chrono::high_resolution_clock> tbegin;
+
 Semaphore sem;
 struct NextNodeMessage : public uMessage<NextNodeMessage>{
-	PID* next;
+	PID* nextNode;
     int id;
-	NextNodeMessage(PID* n, int i) : next(n), id(i){};
+	NextNodeMessage(PID* n, int i) : nextNode(n), id(i){};
 };
 struct MyMessage: public uMessage<MyMessage>{};
 
 class MyActor : public Actor{
 public:
-	PID* next = nullptr;
+	PID* nextNode = nullptr;
     int id = -1;
-    size_t counter =0;
+    size_t counter = 0;
 	void receive(Context& c){
         if(const MyMessage* mm = c.getMessage().isa<MyMessage>()){
+            //std::cout << id << ":" << uThread::getHomekThread() << std::endl;
             if(id == 0){
                 if(counter >= MAX_FORWARD){
-                    sem.V();
-                    return;
-                }
+                    auto elapsed = std::chrono::high_resolution_clock::now() - tbegin;
+                    long long microseconds = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+                    cout << "Elapsed time: " << microseconds << " useconds " << endl;
+                    exit(0);
+
+                }else ++counter;
             }
-            ++counter;
             MyMessage *msg = new MyMessage();
-            next->tell(*msg);
+            nextNode->tell(*msg);
 //			cout << counter << ": Here we are receiving: " << mm->value << endl;
 		}else if(const NextNodeMessage* mm = c.getMessage().isa<NextNodeMessage>()){
-			next = mm->next;
+			nextNode = mm->nextNode;
             id = mm->id;
 		}
 	};
@@ -83,17 +88,14 @@ int main(int argc, const char * argv[]){
 		myactors[i]->tell(NextNodeMessage(myactors[(i+1)%NUM_ACTORS], i));
 	}
 
+    tbegin  = std::chrono::high_resolution_clock::now();;
 	for(size_t i = 0 ; i < MAX_FORWARD; i++){
 	    MyMessage *mm = new MyMessage();
     	myactors[0]->tell(*mm);
     }
-    std::cout << MAX_FORWARD << " Messages sent" << std::endl;
-    clock_t begin = clock();
-	sem.P();
-    clock_t end = clock();
-    double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
 
-    cout << "Elapsed time: " << elapsed_secs << " seconds " << endl;
+    std::cout << MAX_FORWARD << " Messages sent" << std::endl;
+    sem.P();
 
 	return 0;
 }
