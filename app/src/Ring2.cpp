@@ -20,7 +20,9 @@ size_t MAX_FORWARD = 10000;
 size_t NUM_ACTORS = 100;
 
 Semaphore sem;
+
 std::chrono::time_point<std::chrono::high_resolution_clock> tbegin;
+
 struct NextNodeMessage : public uMessage<NextNodeMessage>{
 	PID* next;
 	NextNodeMessage(PID* n) : next(n){};
