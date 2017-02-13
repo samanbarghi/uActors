@@ -118,6 +118,10 @@ public:
 		processMessage(msg);
 	}
 
+    ~LocalContext(){
+        delete actor;
+    }
+
 };
 }
 
