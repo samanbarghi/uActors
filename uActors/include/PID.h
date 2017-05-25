@@ -33,6 +33,7 @@ public:
 			return p;
 
 		p = ProcessRegistry::getInstance()->get(this);
+        assert( p != nullptr);
 		//if(p == nullptr) error could not find, or should the error be propagated to who ever called the function?
 		return p;
 
@@ -46,8 +47,12 @@ public:
 //		Message* msg_cpy = msg.clone();
 		Process* p = ref();
 //        std::cout << "TELL    :\t"  << p << std::endl;
+        assert(p!= nullptr);
 		if(p != nullptr)
 			(*p).sendUserMessage(this, msg, nullptr);
+        else
+            std::cerr << "cannot tell to a nonexistent actor" << std::endl;
+
 		//else error
 	};
 
